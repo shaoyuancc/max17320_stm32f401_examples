@@ -33,9 +33,46 @@ fn main() -> ! {
             .set_open_drain();
         let i2c = dp.I2C1.i2c((scl, sda), 400.kHz(), &clocks);
 
-        let mut bat = max17320::MAX17320::new(i2c, 5.0).expect("vl");
+        let mut bat = max17320::MAX17320::new(i2c, 5.0).expect("mx");
 
-        delay.delay_ms(300_u16);
+        hprintln!("nPackCfg before: {:b}", bat.read_pack_config().unwrap()).unwrap();
+
+        bat.set_pack_config(
+            2,
+            0,
+            max17320::ThermistorType::Ntc10KOhm,
+            max17320::ChargePumpVoltageConfiguration::Cp6V,
+            max17320::AlwaysOnRegulatorConfiguration::Disabled,
+            max17320::BatteryPackUpdate::UpdateEvery22p4s,
+        )
+        .expect("cfgr");
+
+        hprintln!("nPackCfg after: {:b}", bat.read_pack_config().unwrap()).unwrap();
+
+        // Alert thresholds
+        hprintln!(
+            "VAlrtTh before: {:?}",
+            bat.read_volatage_alert_threshold().unwrap()
+        )
+        .unwrap();
+        bat.set_voltage_alert_threshold(1.0, 3.0).expect("svat");
+        hprintln!(
+            "VAlrtTh after: {:?}",
+            bat.read_volatage_alert_threshold().unwrap()
+        )
+        .unwrap();
+
+        hprintln!(
+            "TAlrtTh before: {:?}",
+            bat.read_temperature_alert_threshold().unwrap()
+        )
+        .unwrap();
+        bat.set_temperature_alert_threshold(-20, 60).expect("stat");
+        hprintln!(
+            "TAlrtTh after: {:?}",
+            bat.read_temperature_alert_threshold().unwrap()
+        )
+        .unwrap();
 
         hprintln!("status: {}", bat.read_status().unwrap()).unwrap();
         hprintln!("capacity: {}mAh", bat.read_capacity().unwrap()).unwrap();
@@ -43,25 +80,14 @@ fn main() -> ! {
         hprintln!("state of charge: {}%", bat.read_state_of_charge().unwrap()).unwrap();
         hprintln!("vcell: {}v", bat.read_vcell().unwrap()).unwrap();
         hprintln!("cell1: {}v", bat.read_cell1().unwrap()).unwrap();
-        hprintln!("temp: {}°C", bat.read_temp().unwrap()).unwrap();
-        hprintln!("die temp: {}°C", bat.read_die_temp().unwrap()).unwrap();
+        hprintln!("temp: {}°C", bat.read_temperature().unwrap()).unwrap();
+        hprintln!("die temp: {}°C", bat.read_die_temperature().unwrap()).unwrap();
         hprintln!("current: {}mA", bat.read_current().unwrap()).unwrap();
-
-        let tte = bat.read_time_to_empty().expect("tte");
-        hprintln!("tte: {}", tte).unwrap();
-
-        let ttf = bat.read_time_to_full().expect("ttf");
-        hprintln!("ttf: {}", ttf).unwrap();
-
-        let prot_status = bat.read_protection_status().expect("prs");
-        hprintln!("prot_status: {}", prot_status).unwrap();
-
-        let prot_alert = bat.read_protection_alert().expect("pra");
-        hprintln!("prot_alert: {}", prot_alert).unwrap();
-
-        loop {}
+        hprintln!("tte: {}", bat.read_time_to_empty().unwrap()).unwrap();
+        hprintln!("ttf: {}", bat.read_time_to_full().unwrap()).unwrap();
+        hprintln!("prot_status: {}", bat.read_protection_status().unwrap()).unwrap();
+        hprintln!("prot_alert: {}", bat.read_protection_alert().unwrap()).unwrap();
     }
-
     loop {}
 }
 
